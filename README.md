@@ -2,7 +2,7 @@
 
 ## About
 
-This solution holds the connector that was used when shooting the following training video: .
+This solution holds the connector that was used when shooting the following training video: [Driver Development - Manipulating tables via code](https://www.youtube.com/watch?v=8af4k2VyUu4).
 
 ### About DataMiner
 
