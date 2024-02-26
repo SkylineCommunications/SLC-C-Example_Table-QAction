@@ -24,21 +24,22 @@ public static class QAction
 			int selectedButtonParamId = Convert.ToInt32(protocol.GetTriggerParameter());
 			OrderHelper.UserRequest userRequest = (OrderHelper.UserRequest)Convert.ToInt32(protocol.GetParameter(selectedButtonParamId));
 
-			if (userRequest == OrderHelper.UserRequest.Add)
+			switch (userRequest)
 			{
-				var order = OrderHelper.ReadNewOrderFromProtocol(protocol);
-				AddArticle(protocol, order, useProtocolExtended);
-			}
-
-			if (userRequest == OrderHelper.UserRequest.OneOfEach)
-			{
-				AddOneOfEach(protocol, useProtocolExtended);
-			}
-
-			if (userRequest == OrderHelper.UserRequest.DeleteArticles)
-			{
-				var article = OrderHelper.ReadArticleNameToDeleteFromProtocol(protocol);
-				DeleteArticles(protocol, article, useProtocolExtended);
+				case OrderHelper.UserRequest.Add:
+					var order = OrderHelper.ReadNewOrderFromProtocol(protocol);
+					AddArticle(protocol, order, useProtocolExtended);
+					break;
+				case OrderHelper.UserRequest.OneOfEach:
+					AddOneOfEach(protocol, useProtocolExtended);
+					break;
+				case OrderHelper.UserRequest.DeleteArticles:
+					var article = OrderHelper.ReadArticleNameToDeleteFromProtocol(protocol);
+					DeleteArticles(protocol, article, useProtocolExtended);
+					break;
+				default:
+					protocol.Log($"QA{protocol.QActionID}|Run|Unexpected userRequest '{userRequest}'", LogType.Error, LogLevel.NoLogging);
+					break;
 			}
 		}
 		catch (Exception ex)
@@ -56,7 +57,7 @@ public static class QAction
 	/// <param name="useProtocolExtended">Indication to use the extended protocol methods or not.</param>
 	public static void AddArticle(SLProtocolExt protocol, OrderData orderData, bool useProtocolExtended)
 	{
-		OrdersQActionRow myorder = new OrdersQActionRow
+		OrdersQActionRow myOrder = new OrdersQActionRow
 		{
 			Ordersinstance_1001 = Guid.NewGuid().ToString(),
 			Ordersarticlename_1002 = orderData.Article,
@@ -66,21 +67,21 @@ public static class QAction
 
 		if (!useProtocolExtended)
 		{
-			if (!protocol.Exists(Parameter.Orders.tablePid, myorder.Key))
+			if (!protocol.Exists(Parameter.Orders.tablePid, myOrder.Key))
 			{
 				// Add the order row via Protocol using the table parameter Id.
-				protocol.AddRow(Parameter.Orders.tablePid, myorder.ToObjectArray());
+				protocol.AddRow(Parameter.Orders.tablePid, myOrder.ToObjectArray());
 			}
 			else
 			{
 				// Update the row via Protocol using the table parameter Id.
-				protocol.SetRow(Parameter.Orders.tablePid, myorder.Key, myorder.ToObjectArray());
+				protocol.SetRow(Parameter.Orders.tablePid, myOrder.Key, myOrder.ToObjectArray());
 			}
 		}
 		else
 		{
 			// Add or Update row via Protocol Extended.
-			protocol.orders.SetRow(myorder, true);
+			protocol.orders.SetRow(myOrder, true);
 		}
 	}
 
@@ -109,17 +110,25 @@ public static class QAction
 	/// <param name="useProtocolExtended">Indication to use the extended protocol methods or not.</param>
 	public static void DeleteArticles(SLProtocolExt protocol, OrderHelper.Article article, bool useProtocolExtended)
 	{
-		var matchingRowKeys = protocol.GetCellByValue(Parameter.Orders.tablePid, Parameter.Orders.Idx.ordersinstance_1001, Parameter.Orders.Idx.ordersarticlename_1002, article.ToString());
+		var matchingRowKeys = protocol
+			.GetCellByValue(Parameter.Orders.tablePid, Parameter.Orders.Idx.ordersinstance_1001, Parameter.Orders.Idx.ordersarticlename_1002, article.ToString())
+			.ToArray();
+
+		if (!matchingRowKeys.Any())
+		{
+			protocol.Log($"QA{protocol.QActionID}|DeleteArticles|No '{article}' order to delete.", LogType.DebugInfo, LogLevel.NoLogging);
+			return;
+		}
 
 		if (!useProtocolExtended)
 		{
 			// Delete rows via Protocol.
-			protocol.DeleteRow(Parameter.Orders.tablePid, matchingRowKeys.ToArray());
+			protocol.DeleteRow(Parameter.Orders.tablePid, matchingRowKeys);
 		}
 		else
 		{
 			// Delete rows via Protocol Extended.
-			protocol.orders.DeleteRow(matchingRowKeys.ToArray());
+			protocol.orders.DeleteRow(matchingRowKeys);
 		}
 	}
 

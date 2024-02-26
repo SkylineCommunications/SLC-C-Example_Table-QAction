@@ -12,14 +12,14 @@
 			{
 				Tea = 1,
 				Coffee = 2,
-				Soup = 3
+				Soup = 3,
 			}
 
 			public enum UserRequest
 			{
 				Add = 1,
 				OneOfEach = 2,
-				DeleteArticles = 3
+				DeleteArticles = 3,
 			}
 
 			public static OrderData ReadNewOrderFromProtocol(SLProtocol protocol)
